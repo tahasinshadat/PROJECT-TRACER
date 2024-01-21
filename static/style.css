@@ -1,0 +1,142 @@
+body {
+    padding-top: 20px;
+    background: rgb(22, 22, 22);
+    overflow-x: hidden;
+}
+#camera-block {
+    border: 1px solid #ccc;
+    text-align: center;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+video {
+    width: 100%;
+    height: auto;
+}
+.nav-items {
+    margin-left: 5rem;
+    margin-right: 5rem;
+    border-bottom: 2px solid rgb(0, 122, 20);
+    padding: 10px;
+}
+.desc-size {
+    font-size: 32px;
+}
+a {
+    text-decoration: none !important;
+}
+@media (max-width: 1000px) {
+    .nav-items {
+        margin-left: 5rem;
+        margin-right: 5rem;
+        border-bottom: 2px solid rgb(0, 122, 20);
+    }
+    .desc-size {
+        font-size: 23px;
+    }
+}
+
+@media (max-width: 600px) {
+    .nav-items {
+        margin: 10px;
+        border-bottom: 2px solid rgb(0, 122, 20);
+    }
+    .desc-size {
+        font-size: 21px;
+    }
+}
+.terminal {
+    width: 60%;
+    max-height: 500px;
+    background-color: #000;
+    border: 2px solid #0f0;
+    padding: 10px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #0f0 #000;
+    margin: auto;
+}
+.input-section {
+    margin-top: 10px;
+    display: flex;
+}
+.input-section input[type="text"] {
+    flex: 1;
+    padding: 5px;
+    background-color: #000;
+    color: #0f0;
+    border: 1px solid #0f0;
+}
+.input-section input[type="submit"] {
+    padding: 5px 10px;
+    margin-left: 5px;
+    background-color: #0f0;
+    color: #000;
+    border: none;
+    cursor: pointer;
+}
+/* Color the arrow commands in blue */
+.arrow {
+    color: rgb(0,249,255);
+}
+/* Style the user input in green */
+.user-input {
+    color: #0f0; 
+}
+/* Style the code sent to the terminal in pink */
+.recognized-command {
+    color: #ff69b4;
+}
+/* Style the executed commands in the terminal */
+.executed-command {
+    color: rgb(247, 247, 247);
+}
+/* Style the unrecognized commands in the terminal */
+.unrecognized-command {
+    color: rgb(255, 0, 0);
+}
+
+@media (max-width: 900px) {
+    .terminal {
+        width: 100%;
+    }
+}
+
+#camera-block {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%; /* Set the aspect ratio (16:9) */
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#videoFrame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    padding: 5rem;
+    margin-left: 10vw;
+}
+
+@media (max-width: 991px) {
+    #videoFrame {
+        width: 100%;
+        height: 100%;
+        padding: 0rem;
+        margin-left: 4.5vw;
+    }
+}
+
+@media (max-width: 767px) {
+    #videoFrame {
+        width: 70%;
+        height: 70%;
+        margin-left: 0vw;
+    }
+}

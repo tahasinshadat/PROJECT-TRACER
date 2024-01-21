@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	  
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    
+    <title>TRACER</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script defer src="{{ url_for('static', filename='script.js') }}"></script>
+    <!-- Make compatible with flask websockets -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    
+</head>
+<body>
+
+    <div class="text-center">
+        <h1 class="text-primary">TRACER GUI</h1>
+        <h3 class="text-primary desc-size">(Tunnel Response and Assistance Companion with Enhanced Robotics)</h3>
+    </div>
+
+    <div class="m-2">
+        <div class="d-flex justify-content-center text-primary">
+            <a class="nav-items desc-size text-center" href="{{ url_for('index') }}">Camera Footage</a>
+            <a class="nav-items desc-size text-center" href="{{ url_for('controlPanel') }}">Control Panel</a>
+        </div>
+    </div>
+	  
+    <div class="container">
+        <div class="terminal" id="terminal">
+            <pre>Terminal initialized...</pre>
+            <p class="executed-command">Type "--help" for guidance</p>
+        </div>
+        <div class="input-section">
+            <input type="text" id="input" placeholder="Enter code..." onkeypress="handleKeyPress(event)"/>
+            <input type="submit" value="Run" onclick="executeCode()" />
+        </div>
+    </div>
+
+    <script>
+        var socket = io.connect('https://' + document.domain + ':' + location.port);
+    </script>
+	  
+</body>
+</html>

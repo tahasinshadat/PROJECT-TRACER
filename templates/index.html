@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	  
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    
+    <title>TRACER</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script defer src="{{ url_for('static', filename='script.js') }}"></script>
+    <!-- Make compatible with flask websockets -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+</head>
+<body>
+
+    <div class="text-center">
+        <h1 class="text-primary">TRACER GUI</h1>
+        <h3 class="text-primary desc-size">(Tunnel Response and Assistance Companion with Enhanced Robotics)</h3>
+    </div>
+
+    <div class="m-2">
+        <div class="d-flex justify-content-center text-primary">
+            <a class="nav-items desc-size text-center" href="{{ url_for('index') }}">Camera Footage</a>
+            <a class="nav-items desc-size text-center" href="{{ url_for('controlPanel') }}">Control Panel</a>
+        </div>
+    </div>
+	  
+    <div class="container">
+        <!-- Display TRACER's camera video -->
+        <div class="row">
+            <div class="col-md-12" id="camera-block">
+                <iframe id="videoFrame" src="/video" frameborder="0" allow="fullscreen"></iframe>
+            </div>
+        </div>
+        <!-- Switch cameras button -->
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <button class="btn btn-primary" id="switch-cam-btn" onclick="switchCameras()">Switch Cam</button>
+            </div>
+        </div>
+        <!-- Display user's camera video -->
+        <div class="row">
+            <div class="col-md-12" id="user-cam">
+                <video id="userVideo" width="100%" height="auto" autoplay playsinline muted></video>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        // WebRTC for real-time communication between the client and server. WebRTC is well-suited for webcam streaming.
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+    
+        // Create a WebRTC peer connection
+        var peerConnection = new RTCPeerConnection();
+    
+        // Get the user's video element
+        var userVideo = document.getElementById('userVideo');
+    
+        // Start the user's camera stream
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function (stream) {
+                // Add the user's camera stream to the connection
+                stream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, stream);
+    
+                    // Assign the video track to the global variable for later use
+                    if (track.kind === 'video') {
+                        window.videoTrack = track;
+                    }
+                });
+    
+                // Listen for ICE candidates and send them to the server
+                peerConnection.onicecandidate = function (event) {
+                    if (event.candidate) {
+                        socket.emit('user_ice_candidate', event.candidate);
+                    }
+                };
+    
+                // Listen for the server's ICE candidates and add them to the connection
+                socket.on('server_ice_candidate', function (candidate) {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                });
+    
+                // Create an offer and send it to the server
+                peerConnection.createOffer()
+                    .then(offer => peerConnection.setLocalDescription(offer))
+                    .then(() => {
+                        socket.emit('user_offer', peerConnection.localDescription);
+                    })
+                    .catch(error => console.error('Error creating offer:', error));
+    
+                // Listen for the server's answer and set it as the remote description
+                socket.on('server_answer', function (answer) {
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                });
+    
+                // Set up the setInterval for sending camera frames to the server
+                setInterval(() => {
+                    console.log('Sending camera frame to the server');
+                    const imageCapture = new ImageCapture(window.videoTrack); // Use window.videoTrack here
+                    imageCapture.grabFrame()
+                        .then(imageBitmap => {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = imageBitmap.width;
+                            canvas.height = imageBitmap.height;
+                            const context = canvas.getContext('2d');
+                            context.drawImage(imageBitmap, 0, 0, imageBitmap.width, imageBitmap.height);
+                            const base64Image = canvas.toDataURL('image/jpeg');
+    
+                            // Send the base64-encoded image to the server
+                            socket.emit('user_camera_frame', base64Image);
+                        })
+                        .catch(error => console.error('Error grabbing frame:', error));
+                }, 100); // 10 FPS
+    
+                // Set the user's video element source to the camera stream
+                userVideo.srcObject = stream;
+            })
+            .catch(function (error) {
+                console.error('Error accessing user camera:', error);
+            });
+
+    </script>
+    
+
+</body>
+</html>
