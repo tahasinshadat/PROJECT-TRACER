@@ -33,11 +33,6 @@ PROJECT-TRACER is designed to be deployed within tunnels across New York City to
    - Regularly maintain and update the system to ensure optimal performance and responsiveness.
    - Provide necessary support and troubleshoot any issues that arise during operation.
 
-
-### Issues we ran into:
-- Entire repository was reset and all files were deleted when CAD Designs were added
-- Before repository reset, there were about 30 well detailed commits for better understanding of how we progressed
-
 #### Note:
 - For detailed instructions on setup, configuration, and operational guidelines, refer to the documentation included in the repository.
 - This system is intended for deployment in tunnel environments and should be managed by authorized personnel trained in emergency response protocols and system operation.
