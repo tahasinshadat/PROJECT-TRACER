@@ -3,10 +3,17 @@ from pitop.pma import UltrasonicSensor
 import RPi.GPIO as GPIO
 from time import sleep
 
+from movement_math import get_DC_from_angle
+
 print("Setting up board")
 GPIO.setmode(GPIO.BCM)
 print("board set up")
 
+#############
+# Pin Setup #
+#############
+
+# MOTORS
 LL = 19
 LR = 26
 RL = 20
@@ -29,7 +36,27 @@ left_red.start(0)
 right_white.start(0)
 right_red.start(0)
 
+# SERVO
+FL = 3
+FR = 14
+BL = 4
+BR = 15
+
+FLServo = GPIO.PWM(FL, 50)
+FRServo = GPIO.PWM(FR, 50)
+BLServo = GPIO.PWM(BL, 50)
+BRServo = GPIO.PWM(BR, 50)
+
+FLServo.start(get_DC_from_angle(0))
+FRServo.start(get_DC_from_angle(0))
+BLServo.start(get_DC_from_angle(0))
+BRServo.start(get_DC_from_angle(0))
+
 print("Pins set up")
+
+###################
+# Motor Functions #
+###################
 
 def clockwise(left : GPIO.PWM, right: GPIO.PWM, speed):
     left.ChangeDutyCycle(speed)
@@ -63,7 +90,10 @@ def turn_right_dime(speed):
     clockwise(left_white, left_red, speed)
     counter_clockwise(right_white, right_red, speed)
 
-# commands
+############
+# commands #
+############
+    
 def move_forward_amount(speed, time):
     forward(speed, speed)
     sleep(time)
@@ -74,10 +104,14 @@ def move_backward_amount(speed, time):
     sleep(time)
     brake()
 
-# Set up the components
+###################
+# Component Setup #
+###################
+    
 left = UltrasonicSensor("D7")
 right = UltrasonicSensor("D0")
 front = UltrasonicSensor("D3")
+# back = UltrasonicSensotr("")
 
 side = 1 # 0 is left, 1 is right
 
@@ -163,6 +197,11 @@ def cleanup_board():
     left_red.stop()
     right_white.stop()
     right_red.stop()
+
+    FLServo.stop()
+    FRServo.stop()
+    BLServo.stop()
+    BRServo.stop()
     GPIO.cleanup()
 
 cleanup_board()
