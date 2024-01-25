@@ -4,7 +4,7 @@ import RPi.GPIO as GPIO
 from time import sleep
 import math
 
-from movement_math import get_DC_from_angle
+from movement_math import convert_range, get_DC_from_angle
 
 print("Setting up board")
 GPIO.setmode(GPIO.BCM)
@@ -99,6 +99,18 @@ def turn_right_dime(speed):
     clockwise(left_white, left_red, speed)
     counter_clockwise(right_white, right_red, speed)
 
+def drive_all(front_left_spd, front_right_spd, back_left_spd, back_right_spd):
+    drive_motor(FLL, FLR, front_left_spd)
+    drive_motor(FRL, FRR, front_right_spd)
+    # drive_motor(BLL, BLR, back_left_spd)
+    # drive_motor(BRL, BRR, back_right_spd)
+
+def drive_motor(left : GPIO.PWM, right: GPIO.PWM, speed):
+    if speed > 0:
+        clockwise(left, right, speed)
+    else:
+        counter_clockwise(left, right, speed)
+
 ############
 # commands #
 ############
@@ -117,25 +129,65 @@ def move_backward_amount(speed, time):
 # Component Setup #
 ###################
     
-side_front = UltrasonicSensor("D7")
-side_back = UltrasonicSensor("D0")
+side_front = UltrasonicSensor("D4")
+side_back = UltrasonicSensor("D7")
 front = UltrasonicSensor("D3")
-# back = UltrasonicSensotr("")
+back = UltrasonicSensor("D0")
 
-side = 1 # 0 is back, 1 is forward
+direction = 0
+direction_sensors = (front, back)
+driving_function = (clockwise, counter_clockwise)
+
+# side = 0 # 0 is right, 1 is left # Single side ultrasonic
 
 sensors = [side_front, side_back]
 
-base_speed = 50
+TARGET_DIST_IN = 3
+TARGET_DIST_CM = TARGET_DIST_IN * 2.54
+SENSOR_GAP_IN = 13 # IN
+SENSOR_GAP_CM = SENSOR_GAP_IN * 2.54
+BASE_SPEED = 25
+motor_speeds = [BASE_SPEED, BASE_SPEED, BASE_SPEED, BASE_SPEED] # FL, FR, BL, BR
 
-speeds = [base_speed, base_speed] # left, right
+# speeds = [BASE_SPEED, BASE_SPEED] # DIFFERENTIAL: left, right
 
-cycle = 0
+# cycle = 0
 
-previous_dist = sensors[side].distance
+# previous_dist = sensors[side].distance # Single side Ultrasonic
 
 def auto_drive():
     try:
+        # Swerve drive
+        
+        # readings
+        front_dist = direction_sensors[direction].distance
+        side_front_dist = side_front.distance
+        side_back_dist = side_back.distance
+
+        if front_dist < 5 * 2.54:
+            raise Exception
+
+        # auto parallel
+        current_angle = math.degrees(math.acos((side_back_dist - side_front_dist) / SENSOR_GAP_CM))
+        correction_angle = 90-current_angle
+
+        # auto distance
+        wall_dist = (side_front_dist + side_back_dist) / 2 # average
+        correction_dist = TARGET_DIST_CM-wall_dist
+        correct_dist_angle = convert_range(correction_dist, 0, TARGET_DIST_CM, 0, 45)
+        correction_angle += correct_dist_angle
+        
+        if abs(correction_angle) > 45:
+            correction_angle = math.copysign(45, current_angle)
+
+        FLServo.ChangeDutyCycle(get_DC_from_angle(correction_angle))
+        FRServo.ChangeDutyCycle(get_DC_from_angle(correction_angle))
+        BLServo.ChangeDutyCycle(get_DC_from_angle(-correction_angle))
+        BRServo.ChangeDutyCycle(get_DC_from_angle(-correction_angle))
+
+        driving_function(*motor_speeds)
+
+        """# Differential drive
         print("Starting loop")
         while True:
             # stop
@@ -191,7 +243,7 @@ def auto_drive():
 
             previous_dist = distance
 
-            sleep(0.1)
+            sleep(0.1)"""
 
     except KeyboardInterrupt:
         brake()
