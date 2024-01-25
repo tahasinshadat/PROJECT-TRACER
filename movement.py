@@ -2,6 +2,7 @@
 from pitop.pma import UltrasonicSensor
 import RPi.GPIO as GPIO
 from time import sleep
+import math
 
 from movement_math import get_DC_from_angle
 
@@ -13,28 +14,36 @@ print("board set up")
 # Pin Setup #
 #############
 
+def setup_motor(left:int, right:int, frequency):
+    """Sets up motor given left and right pin
+       Returns (Left GPIO PWM pin, right GPIO PWM pin)"""
+    GPIO.setup(left, GPIO.OUT)
+    GPIO.setup(right, GPIO.OUT)
+    left_pwm = GPIO.PWM(left, frequency)
+    right_pwm = GPIO.PWM(right, frequency)
+
+    left_pwm.start(0)
+    right_pwm.start(0)
+    return (left_pwm, right_pwm)
+
 # MOTORS
-LL = 19
-LR = 26
-RL = 20
-RR = 21
-GPIO.setup(LL, GPIO.OUT)
-GPIO.setup(LR, GPIO.OUT)
-GPIO.setup(RL, GPIO.OUT)
-GPIO.setup(RR, GPIO.OUT)
+# FRONT
+FLL = 19
+FLR = 26
+FRL = 20
+FRR = 21
+# BACK
+# BLL = 
+# BLR =
+# BRL =
+# BRR =
 
 frequency = 1000
 
-left_white = GPIO.PWM(LL, frequency)
-left_red = GPIO.PWM(LR, frequency)
-
-right_white = GPIO.PWM(RL, frequency)
-right_red = GPIO.PWM(RR, frequency)
-
-left_white.start(0)
-left_red.start(0)
-right_white.start(0)
-right_red.start(0)
+left_white, left_red = setup_motor(FLL, FLR, frequency)
+right_white, right_red = setup_motor(FRL, FRR, frequency)
+left_white, left_red = setup_motor(FLL, FLR, frequency)
+right_white, right_red = setup_motor(FRL, FRR, frequency)
 
 # SERVO
 FL = 3
@@ -108,14 +117,14 @@ def move_backward_amount(speed, time):
 # Component Setup #
 ###################
     
-left = UltrasonicSensor("D7")
-right = UltrasonicSensor("D0")
+side_front = UltrasonicSensor("D7")
+side_back = UltrasonicSensor("D0")
 front = UltrasonicSensor("D3")
 # back = UltrasonicSensotr("")
 
-side = 1 # 0 is left, 1 is right
+side = 1 # 0 is back, 1 is forward
 
-sensors = [left, right]
+sensors = [side_front, side_back]
 
 base_speed = 50
 

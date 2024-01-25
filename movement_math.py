@@ -9,4 +9,4 @@ def convert_range(value, original_min, original_max, new_min, new_max):
 def get_DC_from_angle(angle):
     """Used for servos, pos is clockwise, 0 is vertical
        angle: value from -90 to 90"""
-    return convert_range(90 + angle, 0, 180, 1, 2)
+    return convert_range(90 + angle, 0, 180, 5, 10)
