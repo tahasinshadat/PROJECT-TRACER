@@ -162,35 +162,38 @@ motor_speeds = [BASE_SPEED, BASE_SPEED, BASE_SPEED, BASE_SPEED] # FL, FR, BL, BR
 
 def auto_drive():
     try:
-        # Swerve drive
-        
-        # readings
-        front_dist = direction_sensors[direction].distance
-        side_front_dist = side_front.distance
-        side_back_dist = side_back.distance
+        while True:
+            # Swerve drive
+            
+            # readings
+            front_dist = direction_sensors[direction].distance
+            side_front_dist = side_front.distance
+            side_back_dist = side_back.distance
 
-        if front_dist < 5 * 2.54:
-            raise Exception
+            if front_dist < 5 * 2.54:
+                raise Exception
 
-        # auto parallel
-        current_angle = math.degrees(math.acos((side_back_dist - side_front_dist) / SENSOR_GAP_CM))
-        correction_angle = 90-current_angle
+            # auto parallel
+            current_angle = math.degrees(math.acos((side_back_dist - side_front_dist) / SENSOR_GAP_CM))
+            correction_angle = 90-current_angle
 
-        # auto distance
-        wall_dist = (side_front_dist + side_back_dist) / 2 # average
-        correction_dist = TARGET_DIST_CM-wall_dist
-        correct_dist_angle = convert_range(correction_dist, 0, TARGET_DIST_CM, 0, 45)
-        correction_angle += correct_dist_angle
-        
-        if abs(correction_angle) > 45:
-            correction_angle = math.copysign(45, current_angle)
+            # auto distance
+            wall_dist = (side_front_dist + side_back_dist) / 2 # average
+            correction_dist = TARGET_DIST_CM-wall_dist
+            correct_dist_angle = convert_range(correction_dist, 0, TARGET_DIST_CM, 0, 45)
+            correction_angle += correct_dist_angle
+            
+            if abs(correction_angle) > 45:
+                correction_angle = math.copysign(45, current_angle)
 
-        FLServo.ChangeDutyCycle(get_DC_from_angle(correction_angle))
-        FRServo.ChangeDutyCycle(get_DC_from_angle(correction_angle))
-        BLServo.ChangeDutyCycle(get_DC_from_angle(-correction_angle))
-        BRServo.ChangeDutyCycle(get_DC_from_angle(-correction_angle))
+            FLServo.ChangeDutyCycle(get_DC_from_angle(correction_angle))
+            FRServo.ChangeDutyCycle(get_DC_from_angle(correction_angle))
+            BLServo.ChangeDutyCycle(get_DC_from_angle(-correction_angle))
+            BRServo.ChangeDutyCycle(get_DC_from_angle(-correction_angle))
 
-        drive_all(direction, *motor_speeds)
+            drive_all(direction, *motor_speeds)
+
+            sleep(0.1)
 
         """# Differential drive
         print("Starting loop")
