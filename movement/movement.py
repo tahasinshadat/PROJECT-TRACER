@@ -1,4 +1,3 @@
-
 from pitop.pma import UltrasonicSensor
 import RPi.GPIO as GPIO
 import time
@@ -101,19 +100,6 @@ def turn_right_dime(speed):
     clockwise(left_white, left_red, speed)
     counter_clockwise(right_white, right_red, speed)
 """
-    
-# Combined motor functions
-def drive_motor(left : GPIO.PWM, right: GPIO.PWM, speed, direction):
-    if speed > 0:
-        driving_function[direction](left, right, speed)
-    else:
-        driving_function[direction-1](left, right, speed)
-
-def drive_all(direction, front_left_spd, front_right_spd, back_left_spd, back_right_spd):
-    drive_motor(FLL, FLR, front_left_spd, direction)
-    drive_motor(FRL, FRR, front_right_spd, direction)
-    # drive_motor(BLL, BLR, back_left_spd, direction)
-    # drive_motor(BRL, BRR, back_right_spd, direction)
 
 
 ############
@@ -148,6 +134,19 @@ back = UltrasonicSensor("D0")
 direction = 0
 direction_sensors = (front, back)
 driving_function = (clockwise, counter_clockwise)
+    
+# Combined motor functions
+def drive_motor(left : GPIO.PWM, right: GPIO.PWM, speed, direction):
+    if speed > 0:
+        driving_function[direction](left, right, speed)
+    else:
+        driving_function[direction-1](left, right, speed)
+
+def drive_all(direction, front_left_spd, front_right_spd, back_left_spd, back_right_spd):
+    drive_motor(FLL, FLR, front_left_spd, direction)
+    drive_motor(FRL, FRR, front_right_spd, direction)
+    # drive_motor(BLL, BLR, back_left_spd, direction)
+    # drive_motor(BRL, BRR, back_right_spd, direction)
 
 # side = 0 # 0 is right, 1 is left # Single side ultrasonic
 
