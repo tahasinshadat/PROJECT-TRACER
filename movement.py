@@ -1,18 +1,18 @@
 
 from pitop.pma import UltrasonicSensor
 import RPi.GPIO as GPIO
-from time import sleep
+import time
 import math
-
 from movement_math import convert_range, get_DC_from_angle
 
-print("Setting up board")
-GPIO.setmode(GPIO.BCM)
-print("board set up")
 
 #############
 # Pin Setup #
 #############
+
+print("Setting up board")
+GPIO.setmode(GPIO.BCM)
+print("board set up")
 
 def setup_motor(left:int, right:int, frequency):
     """Sets up motor given left and right pin
@@ -63,6 +63,7 @@ BRServo.start(get_DC_from_angle(0))
 
 print("Pins set up")
 
+
 ###################
 # Motor Functions #
 ###################
@@ -91,6 +92,7 @@ def brake():
     brakeMotor(left_white, left_red)
     brakeMotor(right_white, right_red)
 
+""" Differential turn on a dime
 def turn_left_dime(speed):
     counter_clockwise(left_white, left_red, speed)
     clockwise(right_white, right_red, speed)
@@ -98,38 +100,8 @@ def turn_left_dime(speed):
 def turn_right_dime(speed):
     clockwise(left_white, left_red, speed)
     counter_clockwise(right_white, right_red, speed)
-
-############
-# commands #
-############
+"""
     
-def move_forward_amount(speed, time):
-    forward(speed, speed)
-    sleep(time)
-    brake()
-
-def move_backward_amount(speed, time):
-    backward(speed, speed)
-    sleep(time)
-    brake()
-
-###################
-# Component Setup #
-###################
-    
-side_front = UltrasonicSensor("D4")
-side_back = UltrasonicSensor("D7")
-front = UltrasonicSensor("D3")
-back = UltrasonicSensor("D0")
-
-#########
-# Setup #
-#########
-
-direction = 0
-direction_sensors = (front, back)
-driving_function = (clockwise, counter_clockwise)
-
 # Combined motor functions
 def drive_motor(left : GPIO.PWM, right: GPIO.PWM, speed, direction):
     if speed > 0:
@@ -143,9 +115,43 @@ def drive_all(direction, front_left_spd, front_right_spd, back_left_spd, back_ri
     # drive_motor(BLL, BLR, back_left_spd, direction)
     # drive_motor(BRL, BRR, back_right_spd, direction)
 
+
+############
+# commands #
+############
+    
+def move_forward_amount(speed, time):
+    forward(speed, speed)
+    time.sleep(time)
+    brake()
+
+def move_backward_amount(speed, time):
+    backward(speed, speed)
+    time.sleep(time)
+    brake()
+
+
+###################
+# Component Setup #
+###################
+    
+side_front = UltrasonicSensor("D4")
+side_back = UltrasonicSensor("D7")
+front = UltrasonicSensor("D3")
+back = UltrasonicSensor("D0")
+
+
+#########
+# Setup #
+#########
+
+direction = 0
+direction_sensors = (front, back)
+driving_function = (clockwise, counter_clockwise)
+
 # side = 0 # 0 is right, 1 is left # Single side ultrasonic
 
-sensors = [side_front, side_back]
+sensors = (side_front, side_back)
 
 TARGET_DIST_IN = 3
 TARGET_DIST_CM = TARGET_DIST_IN * 2.54
@@ -156,9 +162,67 @@ motor_speeds = [BASE_SPEED, BASE_SPEED, BASE_SPEED, BASE_SPEED] # FL, FR, BL, BR
 
 # speeds = [BASE_SPEED, BASE_SPEED] # DIFFERENTIAL: left, right
 
-# cycle = 0
+cycle = 0
 
 # previous_dist = sensors[side].distance # Single side Ultrasonic
+
+#####################
+# Encoder Setup #
+#####################
+
+# Pins
+encoder_pin_a = 2
+encoder_pin_b = 3
+
+encoder_value = 0
+encoder_last_state = 0
+
+GPIO.setup(encoder_pin_a, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(encoder_pin_b, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+total_distance = 0
+WHEEL_DIA = 2.7559
+WHEEL_CIRCUMFERENCE = WHEEL_DIA * math.pi
+
+# updating encoder and distance
+def update_encoder():
+    global encoder_value, encoder_last_state, total_distance
+
+    # Read the current state of the encoder pins
+    current_state_a = GPIO.input(encoder_pin_a)
+    current_state_b = GPIO.input(encoder_pin_b)
+
+    side_front_dist = sensors[direction].distance
+    side_back_dist = sensors[direction-1].distance
+
+    # Combine the current states into a single value
+    current_state = (current_state_a << 1) | current_state_b
+
+    # Determine the direction of rotation based on the previous and current states
+    direction = (current_state - encoder_last_state) % 4
+
+    current_rad_angle = math.acos((side_back_dist - side_front_dist) / SENSOR_GAP_CM)
+
+    # Update the encoder value based on the direction
+    if direction == 1 or direction == -3:
+        encoder_value += 1
+        total_distance += WHEEL_CIRCUMFERENCE / 4 * math.sin(current_rad_angle)
+    elif direction == -1 or direction == 3:
+        encoder_value -= 1
+        total_distance -= WHEEL_CIRCUMFERENCE / 4 * math.sin(current_rad_angle)
+
+    # Update the last state for the next iteration
+    encoder_last_state = current_state
+
+    print(f"Total distance from start: {total_distance // 12} ft {total_distance % 12} in")
+
+# Update encoder value on change
+GPIO.add_event_detect(encoder_pin_a, GPIO.BOTH, callback=update_encoder)
+GPIO.add_event_detect(encoder_pin_b, GPIO.BOTH, callback=update_encoder)
+
+########
+# Main #
+########
 
 def auto_drive():
     try:
@@ -167,14 +231,21 @@ def auto_drive():
             
             # readings
             front_dist = direction_sensors[direction].distance
-            side_front_dist = side_front.distance
-            side_back_dist = side_back.distance
+            side_front_dist = sensors[direction].distance
+            side_back_dist = sensors[direction-1].distance
 
-            if front_dist < 5 * 2.54:
-                raise Exception
+            if front_dist < 5 * 2.54: # stop if obstacle in front
+                global cycle, direction
+                brake()
+                if cycle < 1:
+                    direction = direction + 1 % 2
+                    cycle += 1
+                else:
+                    raise Exception
 
             # auto parallel
-            current_angle = math.degrees(math.acos((side_back_dist - side_front_dist) / SENSOR_GAP_CM))
+            dist_dif = side_back_dist - side_front_dist
+            current_angle = math.copysign(math.degrees(math.acos((dist_dif) / SENSOR_GAP_CM)), dist_dif)
             correction_angle = 90-current_angle
 
             # auto distance
@@ -193,7 +264,7 @@ def auto_drive():
 
             drive_all(direction, *motor_speeds)
 
-            sleep(0.1)
+            time.sleep(0.1)
 
         """# Differential drive
         print("Starting loop")
@@ -251,7 +322,7 @@ def auto_drive():
 
             previous_dist = distance
 
-            sleep(0.1)"""
+            time.sleep(0.1)"""
 
     except KeyboardInterrupt:
         brake()
@@ -260,6 +331,9 @@ def auto_drive():
     except Exception:
         brake()
         pass
+
+    finally:
+        cleanup_board()
 
 def cleanup_board():
     left_white.stop()
