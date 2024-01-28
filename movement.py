@@ -181,15 +181,15 @@ def auto_drive():
             wall_dist = (side_front_dist + side_back_dist) / 2 # average
             correction_dist = TARGET_DIST_CM-wall_dist
             correct_dist_angle = convert_range(correction_dist, 0, TARGET_DIST_CM, 0, 45)
-            correction_angle += correct_dist_angle
             
             if abs(correction_angle) > 45:
                 correction_angle = math.copysign(45, current_angle)
 
-            FLServo.ChangeDutyCycle(get_DC_from_angle(correction_angle))
-            FRServo.ChangeDutyCycle(get_DC_from_angle(correction_angle))
-            BLServo.ChangeDutyCycle(get_DC_from_angle(-correction_angle))
-            BRServo.ChangeDutyCycle(get_DC_from_angle(-correction_angle))
+            # negative correction_angle for rear wheels
+            FLServo.ChangeDutyCycle(get_DC_from_angle(math.copysign(1, -direction) * correction_angle + correct_dist_angle))
+            FRServo.ChangeDutyCycle(get_DC_from_angle(math.copysign(1, -direction) * correction_angle + correct_dist_angle))
+            BLServo.ChangeDutyCycle(get_DC_from_angle(math.copysign(1, direction-1) * correction_angle + correct_dist_angle))
+            BRServo.ChangeDutyCycle(get_DC_from_angle(math.copysign(1, direction-1) * correction_angle + correct_dist_angle))
 
             drive_all(direction, *motor_speeds)
 
