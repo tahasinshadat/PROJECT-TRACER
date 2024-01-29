@@ -4,6 +4,7 @@ import time
 import math
 from movement_math import convert_range, get_DC_from_angle
 
+GPIO.cleanup() # cleanup in case it did not run last time
 
 #############
 # Pin Setup #
@@ -32,23 +33,29 @@ FLR = 26
 FRL = 20
 FRR = 21
 # BACK
-# BLL = 
-# BLR =
-# BRL =
-# BRR =
+BLL = 23
+BLR = 24
+BRL = 27
+BRR = 22
 
 frequency = 1000
 
 left_white, left_red = setup_motor(FLL, FLR, frequency)
 right_white, right_red = setup_motor(FRL, FRR, frequency)
-left_white, left_red = setup_motor(FLL, FLR, frequency)
-right_white, right_red = setup_motor(FRL, FRR, frequency)
+
+back_left_white, back_left_red = setup_motor(BLL, BLR, frequency)
+back_right_white, back_right_red = setup_motor(BRL, BRR, frequency)
 
 # SERVO
-FL = 3
-FR = 14
-BL = 4
-BR = 15
+FL = 15
+FR = 4
+BL = 14
+BR = 3
+
+GPIO.setup(FL, GPIO.OUT)
+GPIO.setup(FR, GPIO.OUT)
+GPIO.setup(BR, GPIO.OUT)
+GPIO.setup(BL, GPIO.OUT)
 
 FLServo = GPIO.PWM(FL, 50)
 FRServo = GPIO.PWM(FR, 50)
@@ -83,13 +90,22 @@ def forward(left_speed, right_speed):
     clockwise(left_white, left_red, left_speed)
     clockwise(right_white, right_red, right_speed)
 
+    clockwise(back_left_white, back_left_red, left_speed)
+    clockwise(back_right_white, back_right_red, right_speed)
+
 def backward(left_speed, right_speed):
     counter_clockwise(left_white, left_red, left_speed)
     counter_clockwise(right_white, right_red, right_speed)
 
+    counter_clockwise(back_left_white, back_left_red, left_speed)
+    counter_clockwise(back_right_white, back_right_red, right_speed)
+
 def brake():
     brakeMotor(left_white, left_red)
     brakeMotor(right_white, right_red)
+    
+    brakeMotor(back_left_white, back_left_red)
+    brakeMotor(back_right_white, back_right_red)
 
 """ Differential turn on a dime
 def turn_left_dime(speed):
@@ -106,14 +122,42 @@ def turn_right_dime(speed):
 # commands #
 ############
     
-def move_forward_amount(speed, time):
+def move_forward_amount(speed, delay):
     forward(speed, speed)
-    time.sleep(time)
+    time.sleep(delay)
     brake()
 
-def move_backward_amount(speed, time):
+def move_backward_amount(speed, delay):
     backward(speed, speed)
-    time.sleep(time)
+    time.sleep(delay)
+    brake()
+
+def turn_right(speed, delay):
+    FLServo.ChangeDutyCycle(get_DC_from_angle(-45))
+    FRServo.ChangeDutyCycle(get_DC_from_angle(45))
+    BLServo.ChangeDutyCycle(get_DC_from_angle(45))
+    BRServo.ChangeDutyCycle(get_DC_from_angle(-45))
+
+    clockwise(left_white, left_red, speed)
+    counter_clockwise(right_white, right_red, speed)
+    counter_clockwise(back_right_white, back_right_red, speed)
+    clockwise(back_left_white, back_left_red, speed)
+
+    time.sleep(delay)
+    brake()
+
+def turn_left(speed, delay):
+    FLServo.ChangeDutyCycle(get_DC_from_angle(-45))
+    FRServo.ChangeDutyCycle(get_DC_from_angle(45))
+    BLServo.ChangeDutyCycle(get_DC_from_angle(45))
+    BRServo.ChangeDutyCycle(get_DC_from_angle(-45))
+
+    counter_clockwise(left_white, left_red, speed)
+    clockwise(right_white, right_red, speed)
+    clockwise(back_right_white, back_right_red, speed)
+    counter_clockwise(back_left_white, back_left_red, speed)
+
+    time.sleep(delay)
     brake()
 
 
@@ -145,8 +189,8 @@ def drive_motor(left : GPIO.PWM, right: GPIO.PWM, speed, direction):
 def drive_all(direction, front_left_spd, front_right_spd, back_left_spd, back_right_spd):
     drive_motor(FLL, FLR, front_left_spd, direction)
     drive_motor(FRL, FRR, front_right_spd, direction)
-    # drive_motor(BLL, BLR, back_left_spd, direction)
-    # drive_motor(BRL, BRR, back_right_spd, direction)
+    drive_motor(BLL, BLR, back_left_spd, direction)
+    drive_motor(BRL, BRR, back_right_spd, direction)
 
 # side = 0 # 0 is right, 1 is left # Single side ultrasonic
 
@@ -170,14 +214,17 @@ cycle = 0
 #####################
 
 # Pins
-encoder_pin_a = 2
-encoder_pin_b = 3
+encoder_pin_a = 7
+encoder_pin_b = 8
 
 encoder_value = 0
 encoder_last_state = 0
 
 GPIO.setup(encoder_pin_a, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(encoder_pin_b, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+GPIO.remove_event_detect(7)
+GPIO.remove_event_detect(8)
 
 total_distance = 0
 WHEEL_DIA = 2.7559
@@ -224,6 +271,7 @@ GPIO.add_event_detect(encoder_pin_b, GPIO.BOTH, callback=update_encoder)
 ########
 
 def auto_drive():
+    global cycle, direction
     try:
         while True:
             # Swerve drive
@@ -234,7 +282,6 @@ def auto_drive():
             side_back_dist = sensors[direction-1].distance
 
             if front_dist < 5 * 2.54: # stop if obstacle in front
-                global cycle, direction
                 brake()
                 if cycle < 1:
                     direction = direction + 1 % 2
@@ -346,9 +393,30 @@ def cleanup_board():
     BRServo.stop()
     GPIO.cleanup()
 
-def main():
-    auto_drive()
-    cleanup_board()
+def main(choice : str = ""):
+    if choice == "":
+        choice = input("1. auto \n2. forward \n3. backwards\n4. Turn left \n5. Turn right\n")
+        
+    if choice == "1":
+        auto_drive()
+    elif choice == "2":
+        speed = int(input("Enter speed: "))
+        time = int(input("Enter time: "))
+        move_forward_amount(speed, time)
+    elif choice == "3":
+        speed = int(input("Enter speed"))
+        time = int(input("Enter time"))
+        move_backward_amount(speed, time)
+    elif choice == "4":
+        speed = int(input("Enter speed"))
+        time = int(input("Enter time"))
+        turn_left(speed, time)
+    elif choice == "5":
+        speed = int(input("Enter speed"))
+        time = int(input("Enter time"))
+        turn_right(speed, time)
+            
+    # cleanup_board()
 
 if __name__ == "__main__":
     main()
