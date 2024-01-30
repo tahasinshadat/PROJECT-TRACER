@@ -33,10 +33,10 @@ FLR = 26
 FRL = 20
 FRR = 21
 # BACK
-BLL = 23
-BLR = 24
+BLL = 2
+BLR = 3
 BRL = 27
-BRR = 22
+BRR = 16
 
 frequency = 1000
 
@@ -47,10 +47,10 @@ back_left_white, back_left_red = setup_motor(BLL, BLR, frequency)
 back_right_white, back_right_red = setup_motor(BRL, BRR, frequency)
 
 # SERVO
-FL = 15
-FR = 4
-BL = 14
-BR = 3
+FL = 9
+FR = 11
+BL = 8
+BR = 7
 
 GPIO.setup(FL, GPIO.OUT)
 GPIO.setup(FR, GPIO.OUT)
@@ -165,10 +165,10 @@ def turn_left(speed, delay):
 # Component Setup #
 ###################
     
-side_front = UltrasonicSensor("D4")
-side_back = UltrasonicSensor("D7")
-front = UltrasonicSensor("D3")
-back = UltrasonicSensor("D0")
+side_front = UltrasonicSensor("D4") # 7, 8
+side_back = UltrasonicSensor("D7") # 14, 15
+front = UltrasonicSensor("D3") # 5, 6
+back = UltrasonicSensor("D0") # 22, 23
 
 
 #########
@@ -214,8 +214,8 @@ cycle = 0
 #####################
 
 # Pins
-encoder_pin_a = 7
-encoder_pin_b = 8
+encoder_pin_a = 24
+encoder_pin_b = 25
 
 encoder_value = 0
 encoder_last_state = 0
@@ -223,8 +223,8 @@ encoder_last_state = 0
 GPIO.setup(encoder_pin_a, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(encoder_pin_b, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-GPIO.remove_event_detect(7)
-GPIO.remove_event_detect(8)
+# GPIO.remove_event_detect(7)
+# GPIO.remove_event_detect(8)
 
 total_distance = 0
 WHEEL_DIA = 2.7559
@@ -416,7 +416,7 @@ def main(choice : str = ""):
         time = int(input("Enter time"))
         turn_right(speed, time)
             
-    # cleanup_board()
+    cleanup_board()
 
 if __name__ == "__main__":
     main()
